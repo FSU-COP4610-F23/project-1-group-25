@@ -3,54 +3,54 @@
 [Description]
 
 ## Group Members
-- **John Doe**: jd19@fsu.edu
-- **Jane Smith**: js19@fsu.edu
-- **Alex Brown**: ab19@fsu.edu
+- **John McLeod**: jtm21p@fsu.edu
+- **Kaleb Szaro**: kms19t@fsu.edu
+- **Jake Herren**: jmh18m@fsu.edu
 ## Division of Labor
 
 ### Part 1: Prompt
 - **Responsibilities**: [Description]
-- **Assigned to**: John Doe
+- **Assigned to**: John Mcleod, Jake Herren
 
 ### Part 2: Environment Variables
 - **Responsibilities**: [Description]
-- **Assigned to**: Jane Smith
+- **Assigned to**: Jake Herren, Kaleb Szaro
 
 ### Part 3: Tilde Expansion
 - **Responsibilities**: [Description]
-- **Assigned to**: Alex Brown
+- **Assigned to**: Kaleb Szaro, John McLeod
 
 ### Part 4: $PATH Search
 - **Responsibilities**: [Description]
-- **Assigned to**: Alex Brown, Jane Smith
+- **Assigned to**: John McLeod, Jake Herren
 
 ### Part 5: External Command Execution
 - **Responsibilities**: [Description]
-- **Assigned to**: Alex Brown, Jane Smith
+- **Assigned to**: Jake Herren, Kaleb Szaro
 
 ### Part 6: I/O Redirection
 - **Responsibilities**: [Description]
-- **Assigned to**: Jane Smith
+- **Assigned to**: Kaleb Szaro, John McLeod
 
 ### Part 7: Piping
 - **Responsibilities**: [Description]
-- **Assigned to**: John Doe
+- **Assigned to**: John McLeod, Jake Herren
 
 ### Part 8: Background Processing
 - **Responsibilities**: [Description]
-- **Assigned to**: Alex Brown, John Doe
+- **Assigned to**: Jake Herren, Kaleb Szaro
 
 ### Part 9: Internal Command Execution
 - **Responsibilities**: [Description]
-- **Assigned to**: Alex Brown
+- **Assigned to**: Kaleb Szaro, John McLeod
 
 ### Part 10: External Timeout Executable
 - **Responsibilities**: [Description]
-- **Assigned to**: Alex Brown, Jane Smith
+- **Assigned to**: John McLeod, Jake Herren
 
 ### Extra Credit
 - **Responsibilities**: [Description]
-- **Assigned to**: Alex Brown
+- **Assigned to**: John McLeod, Jake Herren, Kaleb Szaro
 
 ## File Listing
 ```
