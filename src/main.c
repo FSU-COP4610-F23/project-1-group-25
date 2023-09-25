@@ -1,4 +1,5 @@
 #include "main.h"
+#include "lexer.h"
 
 int main(int ac, char **argv){
     char *prompt = "(Shell) $ ";
