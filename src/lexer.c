@@ -5,6 +5,7 @@
 
 int main()
 {
+	char * s = "exit";
 	while (1) {
 		printf("> ");
 
@@ -18,8 +19,20 @@ int main()
 		tokenlist *tokens = get_tokens(input);
 		for (int i = 0; i < tokens->size; i++) {
 			printf("token %d: (%s)\n", i, tokens->items[i]);
+			
 		}
 
+		if (tokens->size == 1)
+		{
+			if (!strcmp(tokens->items[0], s))
+			{
+				printf("exit declared\n");
+				free(input);
+				free_tokens(tokens);
+				break;
+			}
+		}
+		
 		free(input);
 		free_tokens(tokens);
 	}
