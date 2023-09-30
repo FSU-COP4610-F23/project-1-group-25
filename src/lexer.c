@@ -7,6 +7,8 @@ int main()
 {
 	char * s = "exit";
 	while (1) {
+		//getenv() should be machine for linprog//
+		printf("%s@%s:%s", getenv("USER"), getenv("MACHINE"), getenv("PWD"));
 		printf("> ");
 
 		/* input contains the whole command
@@ -21,6 +23,7 @@ int main()
 			printf("token %d: (%s)\n", i, tokens->items[i]);
 			
 		}
+
 
 		if (tokens->size == 1)
 		{
@@ -87,8 +90,44 @@ tokenlist *get_tokens(char *input) {
 	strcpy(buf, input);
 	tokenlist *tokens = new_tokenlist();
 	char *tok = strtok(buf, " ");
+
+	
 	while (tok != NULL)
 	{
+		if(tok[0] == '$')
+		{
+			char *test = (char *)calloc(strlen(tok) - 1, sizeof(char));
+
+			for (int i = 1; i < strlen(tok); i++)
+			{
+				test[i-1] = tok[i];
+				
+			}
+			if (getenv(test) == NULL)
+			{
+				printf("%s: Undefined variable.\n", test);
+				free(test);
+				break;
+			}
+			tok = getenv(test);
+		}
+		if(tok[0] == '~')
+		{
+			char *tilde = getenv("HOME");
+			char *combine = (char *)calloc((strlen(tilde) + (strlen(tok) - 1)), sizeof(char));
+
+			for (int i = 0; i < strlen(tilde); i++)
+			{
+				combine[i] = tilde[i];
+			}
+			int j = 1;
+			for (int i = strlen(tilde); j <= strlen(tok); i++)
+			{
+				combine[i] = tok[j];
+				j++;
+			}
+			tok = combine;
+		}
 		add_token(tokens, tok);
 		tok = strtok(NULL, " ");
 	}
