@@ -24,6 +24,11 @@ int main()
 			
 		}
 
+		/* temporary exit functionality to prevent exit through
+		 * CTRL + Z
+		 * if the token list is only of size 1, and that token
+		 * is the word "exit", then break the loop and exit
+		 */
 
 		if (tokens->size == 1)
 		{
@@ -94,6 +99,12 @@ tokenlist *get_tokens(char *input) {
 	
 	while (tok != NULL)
 	{
+		/*Parts 2 and 3, make both into function calls for cleaner code*/
+
+		/*Checks if first char in token is a '$', then changes it to the
+		 * getenv() version of that $. If the getenv() returns NULL, the
+		 * an error message will appear.
+		 */
 		if(tok[0] == '$')
 		{
 			char *test = (char *)calloc(strlen(tok) - 1, sizeof(char));
@@ -111,6 +122,10 @@ tokenlist *get_tokens(char *input) {
 			}
 			tok = getenv(test);
 		}
+		/*Checks if first char in token is a '~', then changes it to the
+		 * full path "/home/$USER" and moves it into the tok[0] value.
+		 * No error checking as of now, may not need any.
+		 */
 		if(tok[0] == '~')
 		{
 			char *tilde = getenv("HOME");
