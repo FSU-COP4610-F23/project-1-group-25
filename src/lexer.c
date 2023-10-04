@@ -3,11 +3,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 int main()
 {
 	char * s = "exit";
-
 	while (1) {
 		//getenv() should be machine for linprog//
 		printf("%s@%s:%s", getenv("USER"), getenv("MACHINE"), getenv("PWD"));
@@ -16,15 +17,11 @@ int main()
 		/* input contains the whole command
 		 * tokens contains substrings from input split by spaces
 		 */
-
 		char *input = get_input();
 		printf("whole input: %s\n", input);
 
 		tokenlist *tokens = get_tokens(input);
-		/*for (int i = 0; i < tokens->size; i++) {
-			printf("token %d: (%s)\n", i, tokens->items[i]);
-			
-		}*/
+
 		// PART 4
 		if (tokens->size == 1)
 		{
@@ -45,34 +42,23 @@ int main()
 		}
 		else
 		{
-			printf("found in directory:\n");
-			printf("(%s)\n", pSearch);
-			int flag = 0;
-			if (fork() == 0)
+			pid_t pid;
+			pid = fork();
+			if (pid == 0)
 			{
-				flag = 1;
 				char ** argC = (char **)calloc(tokens->size - 1, sizeof(char));
-				for (int i = 1; i < tokens->size; i++)
+				for (int i = 0; i < tokens->size; i++)
 				{
-					argC[i-1] = tokens->items[i];
+					argC[i] = tokens->items[i];
 				}
 				execv(pSearch, argC);
-				printf("^ It Worked");
+				exit(0);
 			}
-			if (flag == 1)
+			else
 			{
-				printf("fork works");
+				wait(NULL);
 			}
-			printf("outside if statement\n");
-		}
-		
-		if (!strcmp(tokens->items[0], "echo"))
-		{
-			for (int i = 1; i < tokens->size; i++)
-			{
-				printf("%s ", tokens->items[i]);
-			}
-			printf("\n");
+
 		}
 
 		/* temporary exit functionality to prevent exit through
@@ -112,18 +98,12 @@ char *path_Search(tokenlist* tokens)
 		strcat(test,tokens->items[0]);
 		if(access(test, F_OK) == 0)
 		{
-			//printf("found in directory:\n");
-			//printf("(%s)\n", directories->items[i]);
-			//add a flag to say "not found"//
 			counter++;
 			return test;
 		}
-		//printf("directories %d: (%s)\n", i, directories->items[i]);
 	}
 	if (counter == 0)
 	{
-		//printf("%s:", tokens->items[0]);
-		//printf("Command not found.\n");
 		char * val = "failure";
 		return val;
 	}
