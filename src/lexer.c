@@ -47,10 +47,23 @@ int main()
 		{
 			printf("found in directory:\n");
 			printf("(%s)\n", pSearch);
+			int flag = 0;
 			if (fork() == 0)
 			{
-				execv(pSearch, tokens);
+				flag = 1;
+				char ** argC = (char **)calloc(tokens->size - 1, sizeof(char));
+				for (int i = 1; i < tokens->size; i++)
+				{
+					argC[i-1] = tokens->items[i];
+				}
+				execv(pSearch, argC);
+				printf("^ It Worked");
 			}
+			if (flag == 1)
+			{
+				printf("fork works");
+			}
+			printf("outside if statement\n");
 		}
 		
 		if (!strcmp(tokens->items[0], "echo"))
