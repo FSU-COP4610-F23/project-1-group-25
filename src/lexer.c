@@ -2,6 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 int main()
 {
@@ -14,22 +17,12 @@ int main()
 		/* input contains the whole command
 		 * tokens contains substrings from input split by spaces
 		 */
-
 		char *input = get_input();
 		printf("whole input: %s\n", input);
 
 		tokenlist *tokens = get_tokens(input);
-		for (int i = 0; i < tokens->size; i++) {
-			printf("token %d: (%s)\n", i, tokens->items[i]);
-			
-		}
 
-		/* temporary exit functionality to prevent exit through
-		 * CTRL + Z
-		 * if the token list is only of size 1, and that token
-		 * is the word "exit", then break the loop and exit
-		 */
-
+		// PART 4
 		if (tokens->size == 1)
 		{
 			if (!strcmp(tokens->items[0], s))
@@ -41,11 +34,84 @@ int main()
 			}
 		}
 		
+		char *pSearch = path_Search(tokens);
+		if (!strcmp(pSearch, "failure"))
+		{
+			printf("%s:", tokens->items[0]);
+			printf("Command not found\n");
+		}
+		else
+		{
+			pid_t pid;
+			pid = fork();
+			if (pid == 0)
+			{
+				char ** argC = (char **)calloc(tokens->size - 1, sizeof(char));
+				for (int i = 0; i < tokens->size; i++)
+				{
+					argC[i] = tokens->items[i];
+				}
+				execv(pSearch, argC);
+				exit(0);
+			}
+			else
+			{
+				wait(NULL);
+			}
+
+		}
+
+		/* temporary exit functionality to prevent exit through
+		 * CTRL + Z
+		 * if the token list is only of size 1, and that token
+		 * is the word "exit", then break the loop and exit
+		 */
+
 		free(input);
 		free_tokens(tokens);
 	}
 
 	return 0;
+}
+
+char *path_Search(tokenlist* tokens)
+{
+	char *buf = (char *)calloc(strlen(getenv("PATH")) + 1, sizeof(char));
+	strcpy(buf, getenv("PATH"));
+	tokenlist *directories = new_tokenlist();
+	char *tok = strtok(buf, ":");
+
+	while(tok != NULL)
+	{
+		add_token(directories, tok);
+		tok = strtok(NULL, ":");
+	}
+	free(buf);
+
+	int counter = 0;
+	for (int i = 0; i < directories->size; i++)
+	{
+		char *test = (char *)calloc(strlen(directories->items[i]) + 2 + strlen(tokens->items[0]) + 1, sizeof(char));
+		char *test2 = "/";
+		strcpy(test, directories->items[i]);
+		strcat(test,test2);
+		strcat(test,tokens->items[0]);
+		if(access(test, F_OK) == 0)
+		{
+			counter++;
+			return test;
+		}
+	}
+	if (counter == 0)
+	{
+		char * val = "failure";
+		return val;
+	}
+	else
+	{
+		char * val = "failure";
+		return val;
+	}
 }
 
 char *get_input(void) {
@@ -105,28 +171,52 @@ tokenlist *get_tokens(char *input) {
 		 * getenv() version of that $. If the getenv() returns NULL, the
 		 * an error message will appear.
 		 */
-		if(tok[0] == '$')
-		{
-			char *test = (char *)calloc(strlen(tok) - 1, sizeof(char));
 
-			for (int i = 1; i < strlen(tok); i++)
+		
+
+		if(tok[0] == '$' || (tok[0] == '/' && tok[1] == '$'))
+		{
+			if(tok[0] == '$')
 			{
-				test[i-1] = tok[i];
-				
+				char *test = (char *)calloc(strlen(tok) - 1, sizeof(char));
+
+				for (int i = 1; i < strlen(tok); i++)
+				{
+					test[i-1] = tok[i];
+					
+				}
+				if (getenv(test) == NULL)
+				{
+					printf("%s: Undefined variable.\n", test);
+					free(test);
+					break;
+				}
+				tok = getenv(test);
 			}
-			if (getenv(test) == NULL)
+			else
 			{
-				printf("%s: Undefined variable.\n", test);
-				free(test);
-				break;
+				char *test = (char *)calloc(strlen(tok) - 2, sizeof(char));
+
+				for (int i = 2; i < strlen(tok); i++)
+				{
+					test[i-2] = tok[i];
+					
+				}
+				if (getenv(test) == NULL)
+				{
+					printf("%s: Undefined variable.\n", test);
+					free(test);
+					break;
+				}
+				tok = getenv(test);
 			}
-			tok = getenv(test);
+
 		}
 		/*Checks if first char in token is a '~', then changes it to the
 		 * full path "/home/$USER" and moves it into the tok[0] value.
 		 * No error checking as of now, may not need any.
 		 */
-		if(tok[0] == '~')
+		if(tok[0] == '~' || (tok[0] == '~' && tok[1] == '/'))
 		{
 			char *tilde = getenv("HOME");
 			char *combine = (char *)calloc((strlen(tilde) + (strlen(tok) - 1)), sizeof(char));
