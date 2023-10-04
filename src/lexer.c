@@ -36,39 +36,21 @@ int main()
 				break;
 			}
 		}
-
-		char *buf = (char *)calloc(strlen(getenv("PATH")) + 1, sizeof(char));
-		strcpy(buf, getenv("PATH"));
-		tokenlist *directories = new_tokenlist();
-		char *tok = strtok(buf, ":");
-
-		while(tok != NULL)
+		
+		char *pSearch = path_Search(tokens);
+		if (!strcmp(pSearch, "failure"))
 		{
-			add_token(directories, tok);
-			tok = strtok(NULL, ":");
+			printf("%s:", tokens->items[0]);
+			printf("Command not found\n");
 		}
-		free(buf);
-
-		int counter = 0;
-		for (int i = 0; i < directories->size; i++)
+		else
 		{
-			char *test = (char *)malloc(strlen(directories->items[i]) + 2 + strlen(tokens->items[0]) + 1);
-			char *test2 = "/";
-			strcpy(test, directories->items[i]);
-			strcat(test,test2);
-			strcat(test,tokens->items[0]);
-			if(access(test, F_OK) == 0)
+			printf("found in directory:\n");
+			printf("(%s)\n", pSearch);
+			if (fork() == 0)
 			{
-				printf("found in directory:\n");
-				printf("(%s)\n", directories->items[i]);
-				//add a flag to say "not found"//
-				counter++;
+				execv(pSearch, tokens);
 			}
-			//printf("directories %d: (%s)\n", i, directories->items[i]);
-		}
-		if (counter == 0)
-		{
-			printf("not found in any directories.\n");
 		}
 		
 		if (!strcmp(tokens->items[0], "echo"))
@@ -86,13 +68,57 @@ int main()
 		 * is the word "exit", then break the loop and exit
 		 */
 
-
-		
 		free(input);
 		free_tokens(tokens);
 	}
 
 	return 0;
+}
+
+char *path_Search(tokenlist* tokens)
+{
+	char *buf = (char *)calloc(strlen(getenv("PATH")) + 1, sizeof(char));
+	strcpy(buf, getenv("PATH"));
+	tokenlist *directories = new_tokenlist();
+	char *tok = strtok(buf, ":");
+
+	while(tok != NULL)
+	{
+		add_token(directories, tok);
+		tok = strtok(NULL, ":");
+	}
+	free(buf);
+
+	int counter = 0;
+	for (int i = 0; i < directories->size; i++)
+	{
+		char *test = (char *)calloc(strlen(directories->items[i]) + 2 + strlen(tokens->items[0]) + 1, sizeof(char));
+		char *test2 = "/";
+		strcpy(test, directories->items[i]);
+		strcat(test,test2);
+		strcat(test,tokens->items[0]);
+		if(access(test, F_OK) == 0)
+		{
+			//printf("found in directory:\n");
+			//printf("(%s)\n", directories->items[i]);
+			//add a flag to say "not found"//
+			counter++;
+			return test;
+		}
+		//printf("directories %d: (%s)\n", i, directories->items[i]);
+	}
+	if (counter == 0)
+	{
+		//printf("%s:", tokens->items[0]);
+		//printf("Command not found.\n");
+		char * val = "failure";
+		return val;
+	}
+	else
+	{
+		char * val = "failure";
+		return val;
+	}
 }
 
 char *get_input(void) {
