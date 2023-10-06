@@ -5,13 +5,16 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 int main()
 {
 	char * s = "exit";
+	char currdir[100];
 	while (1) {
 		//getenv() should be machine for linprog//
-		printf("%s@%s:%s", getenv("USER"), getenv("MACHINE"), getenv("PWD"));
+		printf("%s@%s:%s", getenv("USER"), getenv("MACHINE"), getcwd(currdir, 100));
 		printf("> ");
 
 		/* input contains the whole command
@@ -22,7 +25,6 @@ int main()
 
 		tokenlist *tokens = get_tokens(input);
 
-		// PART 4
 		if (tokens->size == 1)
 		{
 			if (!strcmp(tokens->items[0], s))
@@ -33,40 +35,107 @@ int main()
 				break;
 			}
 		}
-		
-		char *pSearch = path_Search(tokens);
-		if (!strcmp(pSearch, "failure"))
+		char *outp;
+		char *inp;
+		int cntr = 0;
+		int cntr2 = 0;	
+		for (int i = 0; i < tokens->size; i++)
 		{
-			printf("%s:", tokens->items[0]);
-			printf("Command not found\n");
-		}
-		else
-		{
-			pid_t pid;
-			pid = fork();
-			if (pid == 0)
+			if (!(strcmp(tokens->items[i],">")))
 			{
-				char ** argC = (char **)calloc(tokens->size - 1, sizeof(char));
-				for (int i = 0; i < tokens->size; i++)
+				cntr++;
+				if (cntr > 1)
 				{
-					argC[i] = tokens->items[i];
+					printf("Too many arguments for >\n");
 				}
-				execv(pSearch, argC);
-				exit(0);
+				outp = tokens->items[i+1];
+				printf("%s is what we're writing to!\n", outp);
+			}
+			else if (!(strcmp(tokens->items[i], "<")))
+			{
+				cntr2++;
+				if (cntr2 > 1)
+				{
+					printf("Too many arguments for >\n");
+				}
+				inp = tokens->items[i+1];
+				printf("%s is what we're writing from!\n", inp);
+			}
+
+		}
+
+		if (!(strcmp(tokens->items[0], "cd")))
+		{
+			if (tokens->size == 2)
+			{
+				char * dir = (char *)calloc(tokens->size - 1, sizeof(char));
+				strcpy(dir, tokens->items[1]);
+
+				if(!(strcmp(dir, "..")))
+				{
+					printf("Change one dir back\n");
+					chdir("..");
+				}
+				else if(!(strcmp(dir, "/")))
+				{
+					printf("Change to root directory\n");
+					chdir("/");
+				}
+				else if (!(strcmp(dir, "-")))
+				{
+					printf("Change to previous directory\n");
+					chdir("-");
+				}
+				else
+				{
+					if(chdir(dir) == -1)
+					{
+						printf("Failure\n");
+					}
+					else
+					{
+						printf("Success\n");
+					}
+				}
+			}
+			else if (tokens->size == 1)
+			{
+				printf("just cd\n");
+				chdir(getenv("HOME"));
 			}
 			else
 			{
-				wait(NULL);
+				printf("Too many arguments\n");
 			}
-
 		}
-
-		/* temporary exit functionality to prevent exit through
-		 * CTRL + Z
-		 * if the token list is only of size 1, and that token
-		 * is the word "exit", then break the loop and exit
-		 */
-
+		else
+		{
+			char *pSearch = path_Search(tokens);
+			if (!strcmp(pSearch, "failure"))
+			{
+				printf("%s:", tokens->items[0]);
+				printf("Command not found\n");
+			}
+			else
+			{
+				pid_t pid;
+				pid = fork();
+				if (pid == 0)
+				{
+					char ** argC = (char **)calloc(tokens->size - 1, sizeof(char));
+					for (int i = 0; i < tokens->size; i++)
+					{
+						argC[i] = tokens->items[i];
+					}
+					execv(pSearch, argC);
+					exit(0);
+				}
+				else
+				{
+					wait(NULL);
+				}
+			}
+		}
 		free(input);
 		free_tokens(tokens);
 	}
@@ -91,15 +160,16 @@ char *path_Search(tokenlist* tokens)
 	int counter = 0;
 	for (int i = 0; i < directories->size; i++)
 	{
-		char *test = (char *)calloc(strlen(directories->items[i]) + 2 + strlen(tokens->items[0]) + 1, sizeof(char));
-		char *test2 = "/";
-		strcpy(test, directories->items[i]);
-		strcat(test,test2);
-		strcat(test,tokens->items[0]);
-		if(access(test, F_OK) == 0)
+		char *accTest = (char *)calloc(strlen(directories->items[i]) + 2 + 
+		strlen(tokens->items[0]) + 1, sizeof(char));
+		char *bs_adder = "/";
+		strcpy(accTest, directories->items[i]);
+		strcat(accTest,bs_adder);
+		strcat(accTest,tokens->items[0]);
+		if(access(accTest, F_OK) == 0)
 		{
 			counter++;
-			return test;
+			return accTest;
 		}
 	}
 	if (counter == 0)
@@ -161,7 +231,6 @@ tokenlist *get_tokens(char *input) {
 	strcpy(buf, input);
 	tokenlist *tokens = new_tokenlist();
 	char *tok = strtok(buf, " ");
-
 	
 	while (tok != NULL)
 	{
@@ -171,44 +240,40 @@ tokenlist *get_tokens(char *input) {
 		 * getenv() version of that $. If the getenv() returns NULL, the
 		 * an error message will appear.
 		 */
-
-		
-
 		if(tok[0] == '$' || (tok[0] == '/' && tok[1] == '$'))
 		{
 			if(tok[0] == '$')
 			{
-				char *test = (char *)calloc(strlen(tok) - 1, sizeof(char));
+				char *envCheck = (char *)calloc(strlen(tok) - 1, sizeof(char));
 
 				for (int i = 1; i < strlen(tok); i++)
 				{
-					test[i-1] = tok[i];
+					envCheck[i-1] = tok[i];
 					
 				}
-				if (getenv(test) == NULL)
+				if (getenv(envCheck) == NULL)
 				{
-					printf("%s: Undefined variable.\n", test);
-					free(test);
+					printf("%s: Undefined variable.\n", envCheck);
+					free(envCheck);
 					break;
 				}
-				tok = getenv(test);
+				tok = getenv(envCheck);
 			}
 			else
 			{
-				char *test = (char *)calloc(strlen(tok) - 2, sizeof(char));
+				char *envCheck = (char *)calloc(strlen(tok) - 2, sizeof(char));
 
 				for (int i = 2; i < strlen(tok); i++)
 				{
-					test[i-2] = tok[i];
-					
+					envCheck[i-2] = tok[i];
 				}
-				if (getenv(test) == NULL)
+				if (getenv(envCheck) == NULL)
 				{
-					printf("%s: Undefined variable.\n", test);
-					free(test);
+					printf("%s: Undefined variable.\n", envCheck);
+					free(envCheck);
 					break;
 				}
-				tok = getenv(test);
+				tok = getenv(envCheck);
 			}
 
 		}
