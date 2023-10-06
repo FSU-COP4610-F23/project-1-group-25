@@ -12,6 +12,7 @@ int main()
 {
 	char * s = "exit";
 	char currdir[100];
+	char * prevDir;
 	while (1) {
 		//getenv() should be machine for linprog//
 		printf("%s@%s:%s", getenv("USER"), getenv("MACHINE"), getcwd(currdir, 100));
@@ -64,6 +65,7 @@ int main()
 
 		}
 
+
 		if (!(strcmp(tokens->items[0], "cd")))
 		{
 			if (tokens->size == 2)
@@ -74,20 +76,31 @@ int main()
 				if(!(strcmp(dir, "..")))
 				{
 					printf("Change one dir back\n");
+					prevDir = getcwd(currdir, 100);
+					printf("Prev Dir: %s", prevDir);
 					chdir("..");
 				}
 				else if(!(strcmp(dir, "/")))
 				{
 					printf("Change to root directory\n");
+					prevDir = getcwd(currdir, 100);
 					chdir("/");
 				}
 				else if (!(strcmp(dir, "-")))
 				{
-					printf("Change to previous directory\n");
-					chdir("-");
+					if (prevDir == NULL)
+					{
+						printf("No such file or directory.\n");
+					}
+					else
+					{
+						printf("Change to previous directory\n");
+						chdir("-");
+					}
 				}
 				else
 				{
+					prevDir = getcwd(currdir, 100);
 					if(chdir(dir) == -1)
 					{
 						printf("Failure\n");
