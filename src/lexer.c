@@ -33,6 +33,7 @@ int main()
 				printf("exit declared\n");
 				free(input);
 				free_tokens(tokens);
+				//free(prevDir);
 				break;
 			}
 		}
@@ -76,14 +77,13 @@ int main()
 				if(!(strcmp(dir, "..")))
 				{
 					printf("Change one dir back\n");
-					prevDir = getcwd(currdir, 100);
-					printf("Prev Dir: %s", prevDir);
+					prevDir = getcwd(prevDir, 0);
 					chdir("..");
 				}
 				else if(!(strcmp(dir, "/")))
 				{
 					printf("Change to root directory\n");
-					prevDir = getcwd(currdir, 100);
+					prevDir = getcwd(prevDir, 0);
 					chdir("/");
 				}
 				else if (!(strcmp(dir, "-")))
@@ -95,12 +95,13 @@ int main()
 					else
 					{
 						printf("Change to previous directory\n");
-						chdir("-");
+						chdir(prevDir);
+						prevDir = NULL;
 					}
 				}
 				else
 				{
-					prevDir = getcwd(currdir, 100);
+					prevDir = getcwd(prevDir, 0);
 					if(chdir(dir) == -1)
 					{
 						printf("Failure\n");
@@ -113,7 +114,6 @@ int main()
 			}
 			else if (tokens->size == 1)
 			{
-				printf("just cd\n");
 				chdir(getenv("HOME"));
 			}
 			else
@@ -152,6 +152,7 @@ int main()
 		free(input);
 		free_tokens(tokens);
 	}
+	free(prevDir);
 
 	return 0;
 }
