@@ -228,9 +228,6 @@ void singlePiping(char** cmdPaths, char*** cmdArgs, int cmdCount){
 }
 
 
-
-
-
 void doublePiping(char** cmdPaths, char*** cmdArgs, int cmdCount){
 	pid_t pid1, pid2, pid3;
 	int pipe1[2];
