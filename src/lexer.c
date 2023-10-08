@@ -13,7 +13,10 @@ int main()
 	char * s = "exit";
 	char currdir[100];
 	char * prevDir;
+	tokenlist last_three;
+	bool backgroundProcess;
 	while (1) {
+		backgroundProcess = false;
 		//getenv() should be machine for linprog//
 		printf("%s@%s:%s", getenv("USER"), getenv("MACHINE"), getcwd(currdir, 100));
 		printf("> ");
@@ -33,39 +36,15 @@ int main()
 				printf("exit declared\n");
 				free(input);
 				free_tokens(tokens);
-				//free(prevDir);
+				free(prevDir);
 				break;
 			}
 		}
-		char *outp;
-		char *inp;
-		int cntr = 0;
-		int cntr2 = 0;	
-		for (int i = 0; i < tokens->size; i++)
+
+		if (!strcmp(tokens->items[tokens->size - 1], "&"))
 		{
-			if (!(strcmp(tokens->items[i],">")))
-			{
-				cntr++;
-				if (cntr > 1)
-				{
-					printf("Too many arguments for >\n");
-				}
-				outp = tokens->items[i+1];
-				printf("%s is what we're writing to!\n", outp);
-			}
-			else if (!(strcmp(tokens->items[i], "<")))
-			{
-				cntr2++;
-				if (cntr2 > 1)
-				{
-					printf("Too many arguments for >\n");
-				}
-				inp = tokens->items[i+1];
-				printf("%s is what we're writing from!\n", inp);
-			}
-
+			backgroundProcess = true;
 		}
-
 
 		if (!(strcmp(tokens->items[0], "cd")))
 		{
@@ -77,13 +56,13 @@ int main()
 				if(!(strcmp(dir, "..")))
 				{
 					printf("Change one dir back\n");
-					prevDir = getcwd(prevDir, 0);
+					prevDir = getcwd(prevDir, 100);
 					chdir("..");
 				}
 				else if(!(strcmp(dir, "/")))
 				{
 					printf("Change to root directory\n");
-					prevDir = getcwd(prevDir, 0);
+					prevDir = getcwd(prevDir, 100);
 					chdir("/");
 				}
 				else if (!(strcmp(dir, "-")))
@@ -101,7 +80,7 @@ int main()
 				}
 				else
 				{
-					prevDir = getcwd(prevDir, 0);
+					prevDir = getcwd(prevDir, 100);
 					if(chdir(dir) == -1)
 					{
 						printf("Failure\n");
@@ -111,9 +90,12 @@ int main()
 						printf("Success\n");
 					}
 				}
+				free(dir);
 			}
 			else if (tokens->size == 1)
 			{
+				prevDir = getcwd(prevDir, 100);
+				printf("Prev Dir: %s\n", prevDir);
 				chdir(getenv("HOME"));
 			}
 			else
@@ -123,41 +105,194 @@ int main()
 		}
 		else
 		{
-			char *pSearch = path_Search(tokens);
-			if (!strcmp(pSearch, "failure"))
+			if (backgroundProcess)
 			{
-				printf("%s:", tokens->items[0]);
-				printf("Command not found\n");
+				//put stuff//
 			}
 			else
 			{
-				pid_t pid;
-				pid = fork();
-				if (pid == 0)
-				{
-					char ** argC = (char **)calloc(tokens->size - 1, sizeof(char));
-					for (int i = 0; i < tokens->size; i++)
-					{
-						argC[i] = tokens->items[i];
+				//JAKE PIPING SECTION (PARSING AND SINGLE COMMANDS)
+				/////////////////////////////////////////////////////////////////////////////////////
+				char ***Cargs = (char ***)calloc(10, sizeof(char**));
+				////////////////////////////////////////////////////////////////////////////////////
+				// create an array of search paths, a path for each command in input
+				////////////////////////////////////////////////////////////////////////////////////
+				char **csp = (char **)calloc(strlen(getenv("PATH")) + 1, sizeof(char));
+				int count = 0;  //commandCount
+				int argToks = 0;
+				bool isCommand = true;
+				int pipeCount = 0;
+				for(int i = 0; i < tokens->size; i++){
+					if(isCommand){
+						csp[count] = path_Search(tokens->items[i]);
+						if (!strcmp(csp[count], "failure"))
+						{
+							printf("%s:", tokens->items[i]);
+							printf("Command not found\n");
+						}
+						Cargs[count] = (char **)calloc(5, sizeof(char*));
+						isCommand = false;
 					}
-					execv(pSearch, argC);
-					exit(0);
+
+					if(!strcmp(tokens->items[i], "|")){
+						count++;
+						argToks = 0;
+						isCommand = true;
+						pipeCount++;
+					}
+					else{
+						Cargs[count][argToks] = tokens->items[i];
+						argToks++;
+					}
 				}
-				else
+				//////////////////////////////////////////////////////////////////////
+
+
+				// maybe set an isPiping flag so i can only call piping function if piping
+				// only call input output if input outout not null
+				// and only call singler command if neither input output or piping
+
+
+				//Should now have a list of commands with arguments as each token
+				// and a list of path searches that correspond to each command argument token
+				// REMEMBER
+				// arglist right now is a list of char string tokens with each command and argument appended to it, remember to parse each token out into its own array for exec function
+				// include some type of delimiter for each cmnd and argument so i can easily do this
+
+				if(pipeCount == 1){
+					singlePiping(csp, Cargs, count+1);
+				}
+				else if (pipeCount == 2)
 				{
-					wait(NULL);
+					doublePiping(csp, Cargs, count+1);
 				}
+				else{
+					pid_t pid = fork();
+					if(pid == 0){
+							execv(csp[0], Cargs[0]);
+							exit(0);
+					}
+					else{
+							wait(NULL);
+					}
+				}
+				//dont forget to free
+				//
+				free(csp);
+				for(int i = 0; i < count; i++){
+					free(Cargs[i]);
+				}
+				free(Cargs);
+
+				//END OF JAKES CODE
 			}
+			
 		}
 		free(input);
 		free_tokens(tokens);
 	}
-	free(prevDir);
+	
 
 	return 0;
 }
 
-char *path_Search(tokenlist* tokens)
+void singlePiping(char** cmdPaths, char*** cmdArgs, int cmdCount){
+	int fd[2];
+	pipe(fd);
+	pid_t pid1 = fork();
+
+	if(pid1 == 0){
+		dup2(fd[1], 1);
+		close(fd[0]);
+		close(fd[1]);
+		execv(cmdPaths[0], cmdArgs[0]);
+	}
+
+
+	int pid2 = fork();
+
+	if(pid2 == 0){
+
+		dup2(fd[0], 0);
+		close(fd[0]);
+		close(fd[1]);
+		execv(cmdPaths[1], cmdArgs[1]);
+
+	}
+
+	close(fd[0]);
+	close(fd[1]);
+
+	waitpid(pid1, NULL, 0);
+	waitpid(pid2, NULL, 0);
+}
+
+
+
+
+
+void doublePiping(char** cmdPaths, char*** cmdArgs, int cmdCount){
+	pid_t pid1, pid2, pid3;
+	int pipe1[2];
+	int pipe2[2];
+
+	pipe(pipe1);
+
+	pid1 = fork();
+	if(pid1 == 0){
+		// input from stdin, output to pipe1
+		dup2(pipe1[1], 1);
+
+		close(pipe1[0]);
+		close(pipe1[1]);
+
+		execv(cmdPaths[0], cmdArgs[0]);
+
+		exit(0);
+	}
+
+	pipe(pipe2);
+
+	pid2 = fork();
+	if(pid2 == 0){
+		// input pipe1
+		dup2(pipe1[0], 0);
+		//output pipe2
+		dup2(pipe2[1], 1);
+
+		//close fd's
+		close(pipe1[0]);
+		close(pipe1[1]);
+		close(pipe2[0]);
+		close(pipe2[1]);
+
+		execv(cmdPaths[1], cmdArgs[1]);
+		exit(0);
+	}
+
+
+	close(pipe1[0]);
+	close(pipe1[1]);
+
+	pid3 = fork();
+	if(pid3 == 0){
+		//input from pipe2
+		dup2(pipe2[0], 0);
+
+		//output to stdout (already done) close fds
+		close(pipe2[0]);
+		close(pipe2[1]);
+
+		execv(cmdPaths[2], cmdArgs[2]);
+		exit(0);
+	}
+
+	waitpid(pid1, NULL, 0);
+	waitpid(pid2, NULL, 0);
+	//waitpid(pid3, NULL, 0);
+}
+
+char *path_Search(char* tokens)
 {
 	char *buf = (char *)calloc(strlen(getenv("PATH")) + 1, sizeof(char));
 	strcpy(buf, getenv("PATH"));
@@ -175,11 +310,11 @@ char *path_Search(tokenlist* tokens)
 	for (int i = 0; i < directories->size; i++)
 	{
 		char *accTest = (char *)calloc(strlen(directories->items[i]) + 2 + 
-		strlen(tokens->items[0]) + 1, sizeof(char));
+		strlen(tokens) + 1, sizeof(char));
 		char *bs_adder = "/";
 		strcpy(accTest, directories->items[i]);
 		strcat(accTest,bs_adder);
-		strcat(accTest,tokens->items[0]);
+		strcat(accTest,tokens);
 		if(access(accTest, F_OK) == 0)
 		{
 			counter++;
