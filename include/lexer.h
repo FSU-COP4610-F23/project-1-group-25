@@ -9,9 +9,12 @@ typedef struct {
     size_t size;
 } tokenlist;
 
+
 char * get_input(void);
 tokenlist * get_tokens(char *input);
 tokenlist * new_tokenlist(void);
-char * path_Search(tokenlist* tokens);
+char * path_Search(char* tokens);
+void singlePiping(char** cmdPaths, char*** cmdArgs, int cmdCount);
+void doublePiping(char** cmdPaths, char*** cmdArgs, int cmdCount);
 void add_token(tokenlist *tokens, char *item);
 void free_tokens(tokenlist *tokens);
