@@ -12,12 +12,13 @@ int main()
 {
 	char * s = "exit";
 	char currdir[100];
-	char * prevDir;
+	char * prevDir = NULL;
 	tokenlist last_three;
 	while (1) {
 		//getenv() should be machine for linprog//
 		printf("%s@%s:%s", getenv("USER"), getenv("MACHINE"), getcwd(currdir, 100));
 		printf("> ");
+
 
 		/* input contains the whole command
 		 * tokens contains substrings from input split by spaces
@@ -42,7 +43,10 @@ int main()
 				printf("exit declared\n");
 				free(input);
 				free_tokens(tokens);
-				free(prevDir);
+				if (prevDir != NULL)
+				{
+					free(prevDir);
+				}
 				break;
 			}
 		}
@@ -69,7 +73,7 @@ int main()
 				else if (!(strcmp(dir, "-")))
 				{
 					//If no previous directory, fail function
-					if (prevDir == NULL)
+					if (prevDir[0] == '\0')
 					{
 						printf("No such file or directory.\n");
 					}
