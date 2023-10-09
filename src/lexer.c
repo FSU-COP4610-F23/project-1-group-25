@@ -25,6 +25,9 @@ int main()
 		char *input = get_input();
 		printf("whole input: %s\n", input);
 
+		char *inputFile = get_inputfile(input);
+		char *outputFile = get_outputfile(input);
+
 		tokenlist *tokens = get_tokens(input);
 
 		if(tokens == NULL)
@@ -171,6 +174,49 @@ int main()
 					}
 				}
 			}
+			else if((inputFile != NULL) || (outputFile != NULL)){
+			
+			pid_t pid = fork();
+	 		if (pid == 0)
+				{
+					//char ** argC = (char **)calloc(tokens->size - 1, sizeof(char));
+					// for (int i = 0; i < tokens->size; i++)
+					// {
+					//         argC[i] = tokens->items[i];
+					// }
+					// If char * inputFile is not NULL 
+					if(inputFile != NULL){
+
+						// Open inputfile with user permissions 
+						int fd = open(inputFile, O_RDWR, S_IRUSR | S_IWUSR);
+
+						dup2(fd, 0);    // 0 means opening for input 
+						//dup2(fd, 2);    // redirects stderr, honestly not sure if we need this for input
+
+						// close input file
+						close(fd);
+
+						// Execute command
+						//execv(csp[0], Cargs[0]);
+					}
+					// if char * outputFile is not NULL
+					if(outputFile != NULL){
+
+						// Open outputFile with user permissions
+						int fd = open(outputFile, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+						dup2(fd, 1);    // 1 means opening for output
+						//dup2(fd, 2);
+						close(fd);
+						//execv(csp[0], Cargs[0]);
+					}
+				execv(csp[0], Cargs[0]);
+		
+			}
+			else{
+				waitpid(pid, NULL, 0);
+				//while(!(wait(&status) == pid));
+			}	
+		}
 			else
 			{
 				if(pipeCount == 1){
@@ -478,83 +524,139 @@ void add_token(tokenlist *tokens, char *item) {
 	tokens->size += 1;
 }
 
+char * get_outputfile(char *input)
+{
+	char *buf = (char *)calloc(strlen(input) + 1, sizeof(char));
+	strcpy(buf, input);
+	char *tok = strtok(buf, " ");
+
+	while (tok != NULL)
+	{
+		if(tok[0] == '>')
+		{
+			tok = strtok(NULL, " ");
+			return tok;
+		}
+		tok = strtok(NULL, " ");
+	}
+	free(buf);
+	return NULL;
+}
+
+char * get_inputfile(char *input)
+{
+	char *buf = (char *)calloc(strlen(input) + 1, sizeof(char));
+	strcpy(buf, input);
+	char *tok = strtok(buf, " ");
+
+	while (tok != NULL)
+	{
+		if(tok[0] == '<')
+		{
+			tok = strtok(NULL, " ");
+			return tok;
+		}
+		tok = strtok(NULL, " ");
+	}
+	free(buf);
+	return NULL;
+}
+
 tokenlist *get_tokens(char *input) {
-	char *buf = (char *)malloc(strlen(input) + 1);
+	char *buf = (char *)calloc(strlen(input) + 1, sizeof(char));
 	strcpy(buf, input);
 	tokenlist *tokens = new_tokenlist();
 	char *tok = strtok(buf, " ");
-	
+	bool outputExists = false;
+	bool inputExists = false;
+
 	while (tok != NULL)
 	{
-		/*Parts 2 and 3, make both into function calls for cleaner code*/
-
-		/*Checks if first char in token is a '$', then changes it to the
-		 * getenv() version of that $. If the getenv() returns NULL, the
-		 * an error message will appear.
-		 */
-		if(tok[0] == '$' || (tok[0] == '/' && tok[1] == '$'))
+		if(tok[0] == '>')
 		{
-			if(tok[0] == '$')
+			if(outputExists)
 			{
-				char *envCheck = (char *)calloc(strlen(tok) - 1, sizeof(char));
-
-				for (int i = 1; i < strlen(tok); i++)
-				{
-					envCheck[i-1] = tok[i];
-					
-				}
-				if (getenv(envCheck) == NULL)
-				{
-					printf("%s: Undefined variable.\n", envCheck);
-					free(envCheck);
-					break;
-				}
-				tok = getenv(envCheck);
+                                printf("Ambiguous output redirect");
+				free_tokens(tokens);
+				free(buf);
+				return NULL;
 			}
-			else
-			{
-				char *envCheck = (char *)calloc(strlen(tok) - 2, sizeof(char));
-
-				for (int i = 2; i < strlen(tok); i++)
-				{
-					envCheck[i-2] = tok[i];
-				}
-				if (getenv(envCheck) == NULL)
-				{
-					printf("%s: Undefined variable.\n", envCheck);
-					free(envCheck);
-					break;
-				}
-				tok = getenv(envCheck);
-			}
-
+			outputExists = true;
+			tok = strtok(NULL, " ");
+			tok = strtok(NULL, " ");
+			continue;
 		}
-		/*Checks if first char in token is a '~', then changes it to the
-		 * full path "/home/$USER" and moves it into the tok[0] value.
-		 * No error checking as of now, may not need any.
-		 */
-		if(tok[0] == '~' || (tok[0] == '~' && tok[1] == '/'))
+		if(tok[0] == '<')
 		{
-			char *tilde = getenv("HOME");
-			char *combine = (char *)calloc((strlen(tilde) + (strlen(tok) - 1)), sizeof(char));
-
-			for (int i = 0; i < strlen(tilde); i++)
+			if(inputExists)
 			{
-				combine[i] = tilde[i];
+                                printf("Ambiguous input redirect");
+				free_tokens(tokens);
+				free(buf);
+				return NULL;
 			}
-			int j = 1;
-			for (int i = strlen(tilde); j <= strlen(tok); i++)
+			inputExists = true;
+			tok = strtok(NULL, " ");
+			tok = strtok(NULL, " ");
+			continue;
+		}
+		if((tok[0] == '~') || (tok[0] == '$'))
+		{
+			char * envVar = expandEnv(tok);
+			if(!strcmp(envVar, "failure"))
 			{
-				combine[i] = tok[j];
-				j++;
+				free_tokens(tokens);
+				return NULL;
 			}
-			tok = combine;
+			add_token(tokens, envVar);
+			tok = strtok(NULL, " ");
+			continue;
 		}
 		add_token(tokens, tok);
 		tok = strtok(NULL, " ");
 	}
 	free(buf);
 	return tokens;
+}
+
+char * expandEnv(char * tok)
+{
+	if(tok[0] == '$')
+        {
+        	char *envVar = (char *)calloc(strlen(tok) - 1, sizeof(char));
+
+                for(int i = 1; i < strlen(tok); i++)
+                {
+                	envVar[i-1] = tok[i];
+                }
+                if(getenv(envVar) == NULL)
+                {
+                	printf("%s: Undefined variable.\n", envVar);
+                        free(envVar);
+                        return "failure";
+                }
+                tok = getenv(envVar);
+                free(envVar);
+		return tok;
+	}
+        if(tok[0] == '~')
+        {
+        	char *tilde = getenv("HOME");
+                char *combine = (char *)calloc(strlen(tilde) + strlen(tok) - 1, sizeof(char));
+                for(int i = 0; i < strlen(tilde); i++)
+                {
+                	combine[i] = tilde[i];
+                }
+                int j = 1;
+                for(int i = strlen(tilde); j <= strlen(tok); i++)
+                {
+                	combine[i] = tok[j];
+                        j++;
+                }
+                tok = combine;
+		return combine;
+	}
+	return NULL;
 }
 
 void free_tokens(tokenlist *tokens) {
