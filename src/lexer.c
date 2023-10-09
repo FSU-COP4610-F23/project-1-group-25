@@ -27,6 +27,11 @@ int main()
 
 		tokenlist *tokens = get_tokens(input);
 
+		if(tokens == NULL)
+		{
+			continue;
+		}
+
 		if (tokens->size == 1)
 		{
 			if (!strcmp(tokens->items[0], s))
