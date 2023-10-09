@@ -55,14 +55,13 @@
 
 ## File Listing
 ```
-shell/
+project-1-group-25/
 │
 ├── src/
-│ ├── main.c
-│ └── shell.c
+│ └── lexer.c
 │
 ├── include/
-│ └── shell.h
+│ └── lexer.h
 │
 ├── README.md
 └── Makefile
@@ -71,7 +70,7 @@ shell/
 
 ### Requirements
 - **Compiler**: e.g., `gcc` for C/C++, `rustc` for Rust.
-- **Dependencies**: List any libraries or frameworks necessary (rust only).
+- **Dependencies**: N/A (Programmed in C)
 
 ### Compilation
 For a C/C++ example:
