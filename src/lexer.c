@@ -24,17 +24,14 @@ int main()
 		 * tokens contains substrings from input split by spaces
 		 */
 		char *input = get_input();
-		printf("whole input: %s\n", input);
-
-		char *inputFile = get_inputfile(input);
-		char *outputFile = get_outputfile(input);
-
-		tokenlist *tokens = get_tokens(input);
-
-		if(tokens == NULL)
+		if (!strcmp(input, ""))
 		{
 			continue;
 		}
+		char *inputFile = get_inputfile(input);
+		char *outputFile = get_outputfile(input);
+		
+		tokenlist *tokens = get_tokens(input);
 
 		if (tokens->size == 1)
 		{
@@ -179,15 +176,9 @@ int main()
 				}
 			}
 			else if((inputFile != NULL) || (outputFile != NULL)){
-			
 			pid_t pid = fork();
 	 		if (pid == 0)
 				{
-					//char ** argC = (char **)calloc(tokens->size - 1, sizeof(char));
-					// for (int i = 0; i < tokens->size; i++)
-					// {
-					//         argC[i] = tokens->items[i];
-					// }
 					// If char * inputFile is not NULL 
 					if(inputFile != NULL){
 
@@ -195,13 +186,11 @@ int main()
 						int fd = open(inputFile, O_RDWR, S_IRUSR | S_IWUSR);
 
 						dup2(fd, 0);    // 0 means opening for input 
-						//dup2(fd, 2);    // redirects stderr, honestly not sure if we need this for input
 
 						// close input file
 						close(fd);
 
 						// Execute command
-						//execv(csp[0], Cargs[0]);
 					}
 					// if char * outputFile is not NULL
 					if(outputFile != NULL){
@@ -209,16 +198,13 @@ int main()
 						// Open outputFile with user permissions
 						int fd = open(outputFile, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
 						dup2(fd, 1);    // 1 means opening for output
-						//dup2(fd, 2);
 						close(fd);
-						//execv(csp[0], Cargs[0]);
 					}
 				execv(csp[0], Cargs[0]);
 		
 			}
 			else{
 				waitpid(pid, NULL, 0);
-				//while(!(wait(&status) == pid));
 			}	
 		}
 			else
@@ -381,7 +367,6 @@ void doublePiping(char** cmdPaths, char*** cmdArgs, int cmdCount){
 
 	waitpid(pid1, NULL, 0);
 	waitpid(pid2, NULL, 0);
-	//waitpid(pid3, NULL, 0);
 }
 
 void b_doublePiping(char** cmdPaths, char*** cmdArgs, int cmdCount){
