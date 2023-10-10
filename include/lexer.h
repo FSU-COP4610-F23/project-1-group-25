@@ -3,6 +3,11 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <signal.h>
 
 typedef struct {
     char ** items;
@@ -11,6 +16,7 @@ typedef struct {
 
 
 char * get_input(void);
+tokenlist ** prevArgs(tokenlist* tokens, tokenlist ** test);
 tokenlist * get_tokens(char *input);
 tokenlist * new_tokenlist(void);
 char * path_Search(char* tokens);

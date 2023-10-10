@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -10,15 +11,22 @@
 
 int main()
 {
+	pid_t waitpid(pid_t pid, int *stat_loc, int options);
 	char * s = "exit";
 	char currdir[100];
 	char * prevDir = NULL;
-	tokenlist last_three;
+	pid_t pids[10];
+	char *cmds[10];
+	int p_iterator = 0;
+	int c_iterator = 0;
+	int status=0;
+	tokenlist ** test;
+	
 	while (1) {
 		//getenv() should be machine for linprog//
+
 		printf("%s@%s:%s", getenv("USER"), getenv("MACHINE"), getcwd(currdir, 100));
 		printf("> ");
-
 
 		/* input contains the whole command
 		 * tokens contains substrings from input split by spaces
@@ -52,7 +60,7 @@ int main()
 		{
 			if (tokens->size == 2)
 			{
-				char * dir = (char *)calloc(tokens->size - 1, sizeof(char));
+				char * dir = (char *)calloc(tokens->size+1, sizeof(char));
 				strcpy(dir, tokens->items[1]);
 
 				if(!(strcmp(dir, "..")))
@@ -60,6 +68,7 @@ int main()
 					//Change one directory back
 					prevDir = getcwd(prevDir, 100);
 					chdir("..");
+					prevArgs(tokens, test);
 				}
 				else if(!(strcmp(dir, "/")))
 				{
@@ -102,16 +111,17 @@ int main()
 			else
 			{
 				printf("Too many arguments\n");
+				continue;
 			}
 		}
 		else
 		{
 			//JAKE PIPING SECTION (PARSING AND SINGLE COMMANDS)
-			/////////////////////////////////////////////////////////////////////////////////////
+			////////////////////////////////////////////////////////////////////////
 			char ***Cargs = (char ***)calloc(10, sizeof(char**));
-			////////////////////////////////////////////////////////////////////////////////////
+			////////////////////////////////////////////////////////////////////////
 			// create an array of search paths, a path for each command in input
-			////////////////////////////////////////////////////////////////////////////////////
+			////////////////////////////////////////////////////////////////////////
 			char **csp = (char **)calloc(strlen(getenv("PATH")) + 1, sizeof(char));
 			int count = 0;  //commandCount
 			int argToks = 0;
@@ -140,17 +150,6 @@ int main()
 					argToks++;
 				}
 			}
-			//////////////////////////////////////////////////////////////////////
-			// maybe set an isPiping flag so i can only call piping function if piping
-			// only call input output if input outout not null
-			// and only call singler command if neither input output or piping
-
-
-			//Should now have a list of commands with arguments as each token
-			// and a list of path searches that correspond to each command argument token
-			// REMEMBER
-			// arglist right now is a list of char string tokens with each command and argument appended to it, remember to parse each token out into its own array for exec function
-			// include some type of delimiter for each cmnd and argument so i can easily do this
 
 			if(!(strcmp(Cargs[count][argToks-1], "&")))
 			{
@@ -163,15 +162,19 @@ int main()
 					b_doublePiping(csp, Cargs, count+1);
 				}
 				else{
-					pid_t pid = fork();
-					int status;
+					pid_t pid;
+					pid = fork();
 					if(pid == 0){
 						execv(csp[0], Cargs[0]);
-						exit(1);
 
+						exit(1);
 					}
 					else{
+						pids[p_iterator] = pid;
+						cmds[c_iterator] = Cargs[count][argToks-2];
+						printf("[%d] %d\n", p_iterator+1, pids[p_iterator]);
 						waitpid(pid, &status, WNOHANG);
+						
 					}
 				}
 			}
@@ -235,14 +238,34 @@ int main()
 			}
 			free(Cargs);
 
-			//END OF JAKES CODE
 		}
 		free(input);
 		free_tokens(tokens);
 	}
-	
 
 	return 0;
+}
+
+tokenlist ** prevArgs(tokenlist * tokens, tokenlist** test)
+{
+	printf("test\n");
+	tokenlist ** newTokenlist;
+	test[0] = (tokenlist **)malloc(sizeof(tokenlist));
+	test[0]->size = 0;
+	test[0]->items = (char **)malloc(sizeof(char *));
+	test[0]->items[0] = NULL; /* make NULL terminated */
+	printf("BLAH\n");
+	test[0]->items[0] = tokens->items[0];
+	
+	newTokenlist = test;
+	printf("Tokenlist Array at 0: ");
+	printf("%s", test[0]->items[0]);
+	for (int i = 0; i < test[0]->size; i++)
+	{
+		printf("%s ", test[0]->items[i]);
+	}
+	printf("\n");
+	return newTokenlist;
 }
 
 void singlePiping(char** cmdPaths, char*** cmdArgs, int cmdCount){
@@ -371,7 +394,7 @@ void doublePiping(char** cmdPaths, char*** cmdArgs, int cmdCount){
 
 void b_doublePiping(char** cmdPaths, char*** cmdArgs, int cmdCount){
 	pid_t pid1, pid2, pid3;
-	int status1, status2, status3;
+	int status1, status2;
 	int pipe1[2];
 	int pipe2[2];
 
