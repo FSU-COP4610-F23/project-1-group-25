@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -10,14 +11,17 @@
 
 int main()
 {
+	pid_t waitpid(pid_t pid, int *stat_loc, int options);
 	char * s = "exit";
 	char currdir[100];
-	char * prevDir;
-	tokenlist last_three;
-	bool backgroundProcess;
+	char * prevDir = NULL;
+	pid_t pids[10];
+	int p_iterator = 0;
+	int status=0;
+	
 	while (1) {
-		backgroundProcess = false;
 		//getenv() should be machine for linprog//
+
 		printf("%s@%s:%s", getenv("USER"), getenv("MACHINE"), getcwd(currdir, 100));
 		printf("> ");
 
@@ -25,140 +29,192 @@ int main()
 		 * tokens contains substrings from input split by spaces
 		 */
 		char *input = get_input();
-		printf("whole input: %s\n", input);
+		if (!strcmp(input, ""))
+		{
+			continue;
+		}
 
+		char *inputFile = get_inputfile(input);
+		char *outputFile = get_outputfile(input);
+		
 		tokenlist *tokens = get_tokens(input);
 
 		if (tokens->size == 1)
 		{
 			if (!strcmp(tokens->items[0], s))
 			{
-				printf("exit declared\n");
+				printf("logout\n");
 				free(input);
 				free_tokens(tokens);
-				free(prevDir);
+				if (prevDir != NULL)
+				{
+					free(prevDir);
+				}
 				break;
 			}
 		}
-
-		if (!strcmp(tokens->items[tokens->size - 1], "&"))
-		{
-			backgroundProcess = true;
-		}
-
+		
 		if (!(strcmp(tokens->items[0], "cd")))
 		{
 			if (tokens->size == 2)
 			{
-				char * dir = (char *)calloc(tokens->size - 1, sizeof(char));
+				char * dir = (char *)calloc(tokens->size+1, sizeof(char));
 				strcpy(dir, tokens->items[1]);
 
 				if(!(strcmp(dir, "..")))
 				{
-					printf("Change one dir back\n");
+					//Change one directory back
 					prevDir = getcwd(prevDir, 100);
 					chdir("..");
 				}
 				else if(!(strcmp(dir, "/")))
 				{
-					printf("Change to root directory\n");
+					//Change to root directory
 					prevDir = getcwd(prevDir, 100);
 					chdir("/");
 				}
 				else if (!(strcmp(dir, "-")))
 				{
-					if (prevDir == NULL)
+					//If no previous directory, fail function
+					if (prevDir[0] == '\0')
 					{
 						printf("No such file or directory.\n");
 					}
 					else
 					{
-						printf("Change to previous directory\n");
+						//Change to previous directory
 						chdir(prevDir);
 						prevDir = NULL;
 					}
 				}
 				else
 				{
+					//For cd with path argument
 					prevDir = getcwd(prevDir, 100);
 					if(chdir(dir) == -1)
 					{
-						printf("Failure\n");
-					}
-					else
-					{
-						printf("Success\n");
+						printf("No such file or directory.\n");
 					}
 				}
 				free(dir);
 			}
 			else if (tokens->size == 1)
 			{
+				//if cd is alone//
 				prevDir = getcwd(prevDir, 100);
-				printf("Prev Dir: %s\n", prevDir);
 				chdir(getenv("HOME"));
 			}
 			else
 			{
 				printf("Too many arguments\n");
+				continue;
 			}
 		}
 		else
 		{
-			if (backgroundProcess)
+			//JAKE PIPING SECTION (PARSING AND SINGLE COMMANDS)
+			////////////////////////////////////////////////////////////////////////
+			char ***Cargs = (char ***)calloc(10, sizeof(char**));
+			////////////////////////////////////////////////////////////////////////
+			// create an array of search paths, a path for each command in input
+			////////////////////////////////////////////////////////////////////////
+			char **csp = (char **)calloc(strlen(getenv("PATH")) + 1, sizeof(char));
+			int count = 0;  //commandCount
+			int argToks = 0;
+			bool isCommand = true;
+			int pipeCount = 0;
+			for(int i = 0; i < tokens->size; i++){
+				if(isCommand){
+					csp[count] = path_Search(tokens->items[i]);
+					if (!strcmp(csp[count], "failure"))
+					{
+						printf("%s:", tokens->items[i]);
+						printf("Command not found\n");
+					}
+					Cargs[count] = (char **)calloc(5, sizeof(char*));
+					isCommand = false;
+				}
+
+				if(!strcmp(tokens->items[i], "|")){
+					count++;
+					argToks = 0;
+					isCommand = true;
+					pipeCount++;
+				}
+				else{
+					Cargs[count][argToks] = tokens->items[i];
+					argToks++;
+				}
+			}
+
+			if((inputFile != NULL) || (outputFile != NULL)){
+			pid_t pid = fork();
+	 		if (pid == 0)
+				{
+					// If char * inputFile is not NULL 
+					if(inputFile != NULL){
+
+						// Open inputfile with user permissions 
+						int fd = open(inputFile, O_RDWR, S_IRUSR | S_IWUSR);
+
+						dup2(fd, 0);    // 0 means opening for input 
+
+						// close input file
+						close(fd);
+
+						// Execute command
+					}
+					// if char * outputFile is not NULL
+					if(outputFile != NULL){
+
+						// Open outputFile with user permissions
+						int fd = open(outputFile, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+						dup2(fd, 1);    // 1 means opening for output
+						close(fd);
+					}
+				execv(csp[0], Cargs[0]);
+		
+			}
+			else{
+				if(!strcmp(tokens->items[tokens->size-1], "&"))
+				{	
+					Cargs[count][argToks-1] = NULL;
+					waitpid(pid, NULL, WNOHANG);
+				}
+				else
+				{
+					waitpid(pid, NULL, 0);
+				}
+			}	
+		}
+		if(!(strcmp(Cargs[count][argToks-1], "&")))
 			{
-				//put stuff//
+				Cargs[count][argToks-1] = NULL;
+				if(pipeCount == 1){
+					b_singlePiping(csp, Cargs, count+1);
+				}
+				else if (pipeCount == 2)
+				{
+					b_doublePiping(csp, Cargs, count+1);
+				}
+				else{
+					pid_t pid;
+					pid = fork();
+					if(pid == 0){
+						execv(csp[0], Cargs[0]);
+
+						exit(1);
+					}
+					else{
+						pids[p_iterator] = pid;
+						printf("[%d] %d\n", p_iterator+1, pids[p_iterator]);
+						waitpid(pid, &status, WNOHANG);
+						
+					}
+				}
 			}
 			else
 			{
-				//JAKE PIPING SECTION (PARSING AND SINGLE COMMANDS)
-				/////////////////////////////////////////////////////////////////////////////////////
-				char ***Cargs = (char ***)calloc(10, sizeof(char**));
-				////////////////////////////////////////////////////////////////////////////////////
-				// create an array of search paths, a path for each command in input
-				////////////////////////////////////////////////////////////////////////////////////
-				char **csp = (char **)calloc(strlen(getenv("PATH")) + 1, sizeof(char));
-				int count = 0;  //commandCount
-				int argToks = 0;
-				bool isCommand = true;
-				int pipeCount = 0;
-				for(int i = 0; i < tokens->size; i++){
-					if(isCommand){
-						csp[count] = path_Search(tokens->items[i]);
-						if (!strcmp(csp[count], "failure"))
-						{
-							printf("%s:", tokens->items[i]);
-							printf("Command not found\n");
-						}
-						Cargs[count] = (char **)calloc(5, sizeof(char*));
-						isCommand = false;
-					}
-
-					if(!strcmp(tokens->items[i], "|")){
-						count++;
-						argToks = 0;
-						isCommand = true;
-						pipeCount++;
-					}
-					else{
-						Cargs[count][argToks] = tokens->items[i];
-						argToks++;
-					}
-				}
-				//////////////////////////////////////////////////////////////////////
-
-
-				// maybe set an isPiping flag so i can only call piping function if piping
-				// only call input output if input outout not null
-				// and only call singler command if neither input output or piping
-
-
-				//Should now have a list of commands with arguments as each token
-				// and a list of path searches that correspond to each command argument token
-				// REMEMBER
-				// arglist right now is a list of char string tokens with each command and argument appended to it, remember to parse each token out into its own array for exec function
-				// include some type of delimiter for each cmnd and argument so i can easily do this
-
 				if(pipeCount == 1){
 					singlePiping(csp, Cargs, count+1);
 				}
@@ -169,29 +225,26 @@ int main()
 				else{
 					pid_t pid = fork();
 					if(pid == 0){
-							execv(csp[0], Cargs[0]);
-							exit(0);
+						execv(csp[0], Cargs[0]);
+						exit(0);
 					}
 					else{
-							wait(NULL);
+						waitpid(pid, NULL, 0);
 					}
 				}
-				//dont forget to free
-				//
-				free(csp);
-				for(int i = 0; i < count; i++){
-					free(Cargs[i]);
-				}
-				free(Cargs);
-
-				//END OF JAKES CODE
 			}
-			
+			//dont forget to free
+			//
+			free(csp);
+			for(int i = 0; i < count; i++){
+				free(Cargs[i]);
+			}
+			free(Cargs);
+
 		}
 		free(input);
 		free_tokens(tokens);
 	}
-	
 
 	return 0;
 }
@@ -227,6 +280,38 @@ void singlePiping(char** cmdPaths, char*** cmdArgs, int cmdCount){
 	waitpid(pid2, NULL, 0);
 }
 
+void b_singlePiping(char** cmdPaths, char*** cmdArgs, int cmdCount){
+	int fd[2];
+	pipe(fd);
+	pid_t pid1 = fork();
+	int status1;
+
+	if(pid1 == 0){
+		dup2(fd[1], 1);
+		close(fd[0]);
+		close(fd[1]);
+		execv(cmdPaths[0], cmdArgs[0]);
+	}
+
+
+	int pid2 = fork();
+	int status2;
+
+	if(pid2 == 0){
+
+		dup2(fd[0], 0);
+		close(fd[0]);
+		close(fd[1]);
+		execv(cmdPaths[1], cmdArgs[1]);
+
+	}
+
+	close(fd[0]);
+	close(fd[1]);
+
+	waitpid(pid1, &status1, WNOHANG);
+	waitpid(pid2, &status2, WNOHANG);
+}
 
 void doublePiping(char** cmdPaths, char*** cmdArgs, int cmdCount){
 	pid_t pid1, pid2, pid3;
@@ -286,7 +371,67 @@ void doublePiping(char** cmdPaths, char*** cmdArgs, int cmdCount){
 
 	waitpid(pid1, NULL, 0);
 	waitpid(pid2, NULL, 0);
-	//waitpid(pid3, NULL, 0);
+}
+
+void b_doublePiping(char** cmdPaths, char*** cmdArgs, int cmdCount){
+	pid_t pid1, pid2, pid3;
+	int status1, status2;
+	int pipe1[2];
+	int pipe2[2];
+
+	pipe(pipe1);
+
+	pid1 = fork();
+	if(pid1 == 0){
+		// input from stdin, output to pipe1
+		dup2(pipe1[1], 1);
+
+		close(pipe1[0]);
+		close(pipe1[1]);
+
+		execv(cmdPaths[0], cmdArgs[0]);
+
+		exit(0);
+	}
+
+	pipe(pipe2);
+
+	pid2 = fork();
+	if(pid2 == 0){
+		// input pipe1
+		dup2(pipe1[0], 0);
+		//output pipe2
+		dup2(pipe2[1], 1);
+
+		//close fd's
+		close(pipe1[0]);
+		close(pipe1[1]);
+		close(pipe2[0]);
+		close(pipe2[1]);
+
+		execv(cmdPaths[1], cmdArgs[1]);
+		exit(0);
+	}
+
+
+	close(pipe1[0]);
+	close(pipe1[1]);
+
+	pid3 = fork();
+	if(pid3 == 0){
+		//input from pipe2
+		dup2(pipe2[0], 0);
+
+		//output to stdout (already done) close fds
+		close(pipe2[0]);
+		close(pipe2[1]);
+
+		execv(cmdPaths[2], cmdArgs[2]);
+		exit(0);
+	}
+
+	waitpid(pid1, &status1, WNOHANG);
+	waitpid(pid2, &status2, WNOHANG);
 }
 
 char *path_Search(char* tokens)
@@ -372,83 +517,139 @@ void add_token(tokenlist *tokens, char *item) {
 	tokens->size += 1;
 }
 
+char * get_outputfile(char *input)
+{
+	char *buf = (char *)calloc(strlen(input) + 1, sizeof(char));
+	strcpy(buf, input);
+	char *tok = strtok(buf, " ");
+
+	while (tok != NULL)
+	{
+		if(tok[0] == '>')
+		{
+			tok = strtok(NULL, " ");
+			return tok;
+		}
+		tok = strtok(NULL, " ");
+	}
+	free(buf);
+	return NULL;
+}
+
+char * get_inputfile(char *input)
+{
+	char *buf = (char *)calloc(strlen(input) + 1, sizeof(char));
+	strcpy(buf, input);
+	char *tok = strtok(buf, " ");
+
+	while (tok != NULL)
+	{
+		if(tok[0] == '<')
+		{
+			tok = strtok(NULL, " ");
+			return tok;
+		}
+		tok = strtok(NULL, " ");
+	}
+	free(buf);
+	return NULL;
+}
+
 tokenlist *get_tokens(char *input) {
-	char *buf = (char *)malloc(strlen(input) + 1);
+	char *buf = (char *)calloc(strlen(input) + 1, sizeof(char));
 	strcpy(buf, input);
 	tokenlist *tokens = new_tokenlist();
 	char *tok = strtok(buf, " ");
-	
+	bool outputExists = false;
+	bool inputExists = false;
+
 	while (tok != NULL)
 	{
-		/*Parts 2 and 3, make both into function calls for cleaner code*/
-
-		/*Checks if first char in token is a '$', then changes it to the
-		 * getenv() version of that $. If the getenv() returns NULL, the
-		 * an error message will appear.
-		 */
-		if(tok[0] == '$' || (tok[0] == '/' && tok[1] == '$'))
+		if(tok[0] == '>')
 		{
-			if(tok[0] == '$')
+			if(outputExists)
 			{
-				char *envCheck = (char *)calloc(strlen(tok) - 1, sizeof(char));
-
-				for (int i = 1; i < strlen(tok); i++)
-				{
-					envCheck[i-1] = tok[i];
-					
-				}
-				if (getenv(envCheck) == NULL)
-				{
-					printf("%s: Undefined variable.\n", envCheck);
-					free(envCheck);
-					break;
-				}
-				tok = getenv(envCheck);
+                printf("Ambiguous output redirect");
+				free_tokens(tokens);
+				free(buf);
+				return NULL;
 			}
-			else
-			{
-				char *envCheck = (char *)calloc(strlen(tok) - 2, sizeof(char));
-
-				for (int i = 2; i < strlen(tok); i++)
-				{
-					envCheck[i-2] = tok[i];
-				}
-				if (getenv(envCheck) == NULL)
-				{
-					printf("%s: Undefined variable.\n", envCheck);
-					free(envCheck);
-					break;
-				}
-				tok = getenv(envCheck);
-			}
-
+			outputExists = true;
+			tok = strtok(NULL, " ");
+			tok = strtok(NULL, " ");
+			continue;
 		}
-		/*Checks if first char in token is a '~', then changes it to the
-		 * full path "/home/$USER" and moves it into the tok[0] value.
-		 * No error checking as of now, may not need any.
-		 */
-		if(tok[0] == '~' || (tok[0] == '~' && tok[1] == '/'))
+		if(tok[0] == '<')
 		{
-			char *tilde = getenv("HOME");
-			char *combine = (char *)calloc((strlen(tilde) + (strlen(tok) - 1)), sizeof(char));
-
-			for (int i = 0; i < strlen(tilde); i++)
+			if(inputExists)
 			{
-				combine[i] = tilde[i];
+                printf("Ambiguous input redirect");
+				free_tokens(tokens);
+				free(buf);
+				return NULL;
 			}
-			int j = 1;
-			for (int i = strlen(tilde); j <= strlen(tok); i++)
+			inputExists = true;
+			tok = strtok(NULL, " ");
+			tok = strtok(NULL, " ");
+			continue;
+		}
+		if((tok[0] == '~') || (tok[0] == '$'))
+		{
+			char * envVar = expandEnv(tok);
+			if(!strcmp(envVar, "failure"))
 			{
-				combine[i] = tok[j];
-				j++;
+				free_tokens(tokens);
+				return NULL;
 			}
-			tok = combine;
+			add_token(tokens, envVar);
+			tok = strtok(NULL, " ");
+			continue;
 		}
 		add_token(tokens, tok);
 		tok = strtok(NULL, " ");
 	}
 	free(buf);
 	return tokens;
+}
+
+char * expandEnv(char * tok)
+{
+	if(tok[0] == '$')
+        {
+        	char *envVar = (char *)calloc(strlen(tok) - 1, sizeof(char));
+
+                for(int i = 1; i < strlen(tok); i++)
+                {
+                	envVar[i-1] = tok[i];
+                }
+                if(getenv(envVar) == NULL)
+                {
+                	printf("%s: Undefined variable.\n", envVar);
+                        free(envVar);
+                        return "failure";
+                }
+                tok = getenv(envVar);
+                free(envVar);
+		return tok;
+	}
+        if(tok[0] == '~')
+        {
+        	char *tilde = getenv("HOME");
+                char *combine = (char *)calloc(strlen(tilde) + strlen(tok) - 1, sizeof(char));
+                for(int i = 0; i < strlen(tilde); i++)
+                {
+                	combine[i] = tilde[i];
+                }
+                int j = 1;
+                for(int i = strlen(tilde); j <= strlen(tok); i++)
+                {
+                	combine[i] = tok[j];
+                        j++;
+                }
+                tok = combine;
+		return combine;
+	}
+	return NULL;
 }
 
 void free_tokens(tokenlist *tokens) {
