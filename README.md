@@ -86,14 +86,19 @@ This will build the executable "shell" in bin
 This will run the program ...
 
 ## Bugs
-- **Bug 1**: This is bug 1.
-- **Bug 2**: This is bug 2.
+- **Bug 1**: When attempting to use I/O Redirection and Piping at the same time, double piping seems to skip the center command.
+- I.E. - `ls | grep .md | cat > output.txt`
+- This command would only place the output of ls into output.txt
+- **Bug 2**: Background Processes will not show the PID and Queue after a command is executing in background.
 - **Bug 3**: This is bug 3.
 
 ## Extra Credit
-- **Extra Credit 1**: [Extra Credit Option]
-- **Extra Credit 2**: [Extra Credit Option]
-- **Extra Credit 3**: [Extra Credit Option]
+- **Extra Credit 1**: Support unlimited number of pipes.
+- **Extra Credit 1 Documentation**: Only supports 2 pipes at the moment.
+- **Extra Credit 2**: Support piping and I/O redirection in a single command.
+- **Extra Credit 2 Documentation**: Piping and I/O redirection works for single pipes, but not 2 pipes.
+- **Extra Credit 3**: Execute your shell from within a running shell process repeatedly.
+- **Extra Credit 3 Documentation**: Shell-ception is currently not available.
 
 ## Considerations
-[Description]
+- Combining I/O Redirection and Piping only works for single piping background processes. Double piping seems to skip the center command.
