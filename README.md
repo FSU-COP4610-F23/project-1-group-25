@@ -6,7 +6,7 @@ This is a comprehensive shell interface created in the C language. The goal of t
 - **John McLeod**: jtm21p@fsu.edu
 - **Kaleb Szaro**: kms19t@fsu.edu
 - **Jake Herren**: jmh18m@fsu.edu
-## Division of Labor (BEFORE)
+## Division of Labor -- BEFORE
 
 ### Part 1: Prompt
 - **Responsibilities**: [Description]
