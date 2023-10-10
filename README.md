@@ -96,9 +96,8 @@ This will run the program ...
 - **Extra Credit 1**: Support unlimited number of pipes.
 - **Extra Credit 1 Documentation**: Only supports 2 pipes at the moment.
 - **Extra Credit 2**: Support piping and I/O redirection in a single command.
-- **Extra Credit 2 Documentation**: Piping and I/O redirection works for single pipes, but not 2 pipes.
+- **Extra Credit 2 Documentation**: Piping and I/O redirection works
 - **Extra Credit 3**: Execute your shell from within a running shell process repeatedly.
 - **Extra Credit 3 Documentation**: Shell-ception is currently not available.
 
 ## Considerations
-- Combining I/O Redirection and Piping only works for single piping background processes. Double piping seems to skip the center command.
