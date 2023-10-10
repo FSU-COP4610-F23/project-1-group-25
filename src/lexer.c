@@ -147,7 +147,34 @@ int main()
 				}
 			}
 
-			if((inputFile != NULL) || (outputFile != NULL)){
+			if(!(strcmp(Cargs[count][argToks-1], "&")))
+			{
+				Cargs[count][argToks-1] = NULL;
+				if(pipeCount == 1){
+					b_singlePiping(csp, Cargs, count+1, inputFile, outputFile);
+				}
+				else if (pipeCount == 2)
+				{
+					b_doublePiping(csp, Cargs, count+1, inputFile, outputFile);
+				}
+				else{
+					pid_t pid;
+					pid = fork();
+					if(pid == 0){
+						execv(csp[0], Cargs[0]);
+
+						exit(1);
+					}
+					else{
+						pids[p_iterator] = pid;
+						printf("[%d] %d\n", p_iterator+1, pids[p_iterator]);
+						waitpid(pid, &status, WNOHANG);
+						
+					}
+				}
+			}
+
+			else if((inputFile != NULL) || (outputFile != NULL)){
 			pid_t pid = fork();
 	 		if (pid == 0)
 				{
@@ -187,40 +214,14 @@ int main()
 				}
 			}	
 		}
-		if(!(strcmp(Cargs[count][argToks-1], "&")))
-			{
-				Cargs[count][argToks-1] = NULL;
-				if(pipeCount == 1){
-					b_singlePiping(csp, Cargs, count+1);
-				}
-				else if (pipeCount == 2)
-				{
-					b_doublePiping(csp, Cargs, count+1);
-				}
-				else{
-					pid_t pid;
-					pid = fork();
-					if(pid == 0){
-						execv(csp[0], Cargs[0]);
-
-						exit(1);
-					}
-					else{
-						pids[p_iterator] = pid;
-						printf("[%d] %d\n", p_iterator+1, pids[p_iterator]);
-						waitpid(pid, &status, WNOHANG);
-						
-					}
-				}
-			}
 			else
 			{
 				if(pipeCount == 1){
-					singlePiping(csp, Cargs, count+1);
+					singlePiping(csp, Cargs, count+1, inputFile, outputFile);
 				}
 				else if (pipeCount == 2)
 				{
-					doublePiping(csp, Cargs, count+1);
+					doublePiping(csp, Cargs, count+1, inputFile, outputFile);
 				}
 				else{
 					pid_t pid = fork();
@@ -247,232 +248,6 @@ int main()
 	}
 
 	return 0;
-}
-
-void singlePiping(char** cmdPaths, char*** cmdArgs, int cmdCount){
-	int fd[2];
-	pipe(fd);
-	pid_t pid1 = fork();
-
-	if(pid1 == 0){
-		dup2(fd[1], 1);
-		close(fd[0]);
-		close(fd[1]);
-		execv(cmdPaths[0], cmdArgs[0]);
-	}
-
-
-	int pid2 = fork();
-
-	if(pid2 == 0){
-
-		dup2(fd[0], 0);
-		close(fd[0]);
-		close(fd[1]);
-		execv(cmdPaths[1], cmdArgs[1]);
-
-	}
-
-	close(fd[0]);
-	close(fd[1]);
-
-	waitpid(pid1, NULL, 0);
-	waitpid(pid2, NULL, 0);
-}
-
-void b_singlePiping(char** cmdPaths, char*** cmdArgs, int cmdCount){
-	int fd[2];
-	pipe(fd);
-	pid_t pid1 = fork();
-	int status1;
-
-	if(pid1 == 0){
-		dup2(fd[1], 1);
-		close(fd[0]);
-		close(fd[1]);
-		execv(cmdPaths[0], cmdArgs[0]);
-	}
-
-
-	int pid2 = fork();
-	int status2;
-
-	if(pid2 == 0){
-
-		dup2(fd[0], 0);
-		close(fd[0]);
-		close(fd[1]);
-		execv(cmdPaths[1], cmdArgs[1]);
-
-	}
-
-	close(fd[0]);
-	close(fd[1]);
-
-	waitpid(pid1, &status1, WNOHANG);
-	waitpid(pid2, &status2, WNOHANG);
-}
-
-void doublePiping(char** cmdPaths, char*** cmdArgs, int cmdCount){
-	pid_t pid1, pid2, pid3;
-	int pipe1[2];
-	int pipe2[2];
-
-	pipe(pipe1);
-
-	pid1 = fork();
-	if(pid1 == 0){
-		// input from stdin, output to pipe1
-		dup2(pipe1[1], 1);
-
-		close(pipe1[0]);
-		close(pipe1[1]);
-
-		execv(cmdPaths[0], cmdArgs[0]);
-
-		exit(0);
-	}
-
-	pipe(pipe2);
-
-	pid2 = fork();
-	if(pid2 == 0){
-		// input pipe1
-		dup2(pipe1[0], 0);
-		//output pipe2
-		dup2(pipe2[1], 1);
-
-		//close fd's
-		close(pipe1[0]);
-		close(pipe1[1]);
-		close(pipe2[0]);
-		close(pipe2[1]);
-
-		execv(cmdPaths[1], cmdArgs[1]);
-		exit(0);
-	}
-
-
-	close(pipe1[0]);
-	close(pipe1[1]);
-
-	pid3 = fork();
-	if(pid3 == 0){
-		//input from pipe2
-		dup2(pipe2[0], 0);
-
-		//output to stdout (already done) close fds
-		close(pipe2[0]);
-		close(pipe2[1]);
-
-		execv(cmdPaths[2], cmdArgs[2]);
-		exit(0);
-	}
-
-	waitpid(pid1, NULL, 0);
-	waitpid(pid2, NULL, 0);
-}
-
-void b_doublePiping(char** cmdPaths, char*** cmdArgs, int cmdCount){
-	pid_t pid1, pid2, pid3;
-	int status1, status2;
-	int pipe1[2];
-	int pipe2[2];
-
-	pipe(pipe1);
-
-	pid1 = fork();
-	if(pid1 == 0){
-		// input from stdin, output to pipe1
-		dup2(pipe1[1], 1);
-
-		close(pipe1[0]);
-		close(pipe1[1]);
-
-		execv(cmdPaths[0], cmdArgs[0]);
-
-		exit(0);
-	}
-
-	pipe(pipe2);
-
-	pid2 = fork();
-	if(pid2 == 0){
-		// input pipe1
-		dup2(pipe1[0], 0);
-		//output pipe2
-		dup2(pipe2[1], 1);
-
-		//close fd's
-		close(pipe1[0]);
-		close(pipe1[1]);
-		close(pipe2[0]);
-		close(pipe2[1]);
-
-		execv(cmdPaths[1], cmdArgs[1]);
-		exit(0);
-	}
-
-
-	close(pipe1[0]);
-	close(pipe1[1]);
-
-	pid3 = fork();
-	if(pid3 == 0){
-		//input from pipe2
-		dup2(pipe2[0], 0);
-
-		//output to stdout (already done) close fds
-		close(pipe2[0]);
-		close(pipe2[1]);
-
-		execv(cmdPaths[2], cmdArgs[2]);
-		exit(0);
-	}
-
-	waitpid(pid1, &status1, WNOHANG);
-	waitpid(pid2, &status2, WNOHANG);
-}
-
-char *path_Search(char* tokens)
-{
-	char *buf = (char *)calloc(strlen(getenv("PATH")) + 1, sizeof(char));
-	strcpy(buf, getenv("PATH"));
-	tokenlist *directories = new_tokenlist();
-	char *tok = strtok(buf, ":");
-
-	while(tok != NULL)
-	{
-		add_token(directories, tok);
-		tok = strtok(NULL, ":");
-	}
-	free(buf);
-
-	int counter = 0;
-	for (int i = 0; i < directories->size; i++)
-	{
-		char *accTest = (char *)calloc(strlen(directories->items[i]) + 2 + 
-		strlen(tokens) + 1, sizeof(char));
-		char *bs_adder = "/";
-		strcpy(accTest, directories->items[i]);
-		strcat(accTest,bs_adder);
-		strcat(accTest,tokens);
-		if(access(accTest, F_OK) == 0)
-		{
-			counter++;
-			return accTest;
-		}
-	}
-	if (counter == 0)
-	{
-		char * val = "failure";
-		return val;
-	}
-	else
-	{
-		char * val = "failure";
-		return val;
-	}
 }
 
 char *get_input(void) {
