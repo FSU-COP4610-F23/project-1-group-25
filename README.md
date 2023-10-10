@@ -8,47 +8,47 @@ This is a comprehensive shell interface created in the C language. The goal of t
 ## Division of Labor
 
 ### Part 1: Prompt
-- **Responsibilities**: [Description]
+- **Responsibilities**: Created a prompt that the user will be greeted with. Indicates the absolute working directory, user name, and machine name.
 - **Assigned to**: John Mcleod, Jake Herren
 
 ### Part 2: Environment Variables
-- **Responsibilities**: [Description]
+- **Responsibilities**: Replaced tokens prefixed with the "$" character with their corresponding values.
 - **Assigned to**: Jake Herren, Kaleb Szaro
 
 ### Part 3: Tilde Expansion
-- **Responsibilities**: [Description]
+- **Responsibilities**: Expanded the tilde "~" to the environment variable $HOME whenever shown at the beginning o a path.
 - **Assigned to**: Kaleb Szaro, John McLeod
 
 ### Part 4: $PATH Search
-- **Responsibilities**: [Description]
+- **Responsibilities**: Created list of directories using the $PATH environment variable that is searched until the argument is found or not.
 - **Assigned to**: John McLeod, Jake Herren
 
 ### Part 5: External Command Execution
-- **Responsibilities**: [Description]
+- **Responsibilities**: Took command from input and created a child process that would execute said command using fork() and execv().
 - **Assigned to**: Jake Herren, Kaleb Szaro
 
 ### Part 6: I/O Redirection
-- **Responsibilities**: [Description]
+- **Responsibilities**: Provided implementation of file input/output redirection. Combining the two when necessary.
 - **Assigned to**: Kaleb Szaro, John McLeod
 
 ### Part 7: Piping
-- **Responsibilities**: [Description]
+- **Responsibilities**: Implemented simultaneous execution of multiple commands, with the input and output of these commands interconnected via Piping.
 - **Assigned to**: John McLeod, Jake Herren
 
 ### Part 8: Background Processing
-- **Responsibilities**: [Description]
+- **Responsibilities**: Created ability for shell to execute external commands without waiting for their completion. Keeping track of said commands was also created.
 - **Assigned to**: Jake Herren, Kaleb Szaro
 
 ### Part 9: Internal Command Execution
-- **Responsibilities**: [Description]
+- **Responsibilities**: Created exit, cd PATH, and jobs internal commands for the shell. 
 - **Assigned to**: Kaleb Szaro, John McLeod
 
 ### Part 10: External Timeout Executable
-- **Responsibilities**: [Description]
+- **Responsibilities**: Implemented the external executable "mytimeout" which offers enhanced control over command execution duration.
 - **Assigned to**: John McLeod, Jake Herren
 
 ### Extra Credit
-- **Responsibilities**: [Description]
+- **Responsibilities**: Create support for an unlimited number of pipes, support Piping and I/O redirection in a single command, and be able to execute your shell from within a running shell process.
 - **Assigned to**: John McLeod, Jake Herren, Kaleb Szaro
 
 ## File Listing
@@ -57,9 +57,12 @@ project-1-group-25/
 │
 ├── src/
 │ └── lexer.c
+| └── pathsearch.c
+| └── mytimeout.c
 │
 ├── include/
 │ └── lexer.h
+| └── pathsearch.h
 │
 ├── README.md
 └── Makefile
