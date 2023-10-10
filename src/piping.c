@@ -187,7 +187,9 @@ void b_singlePiping(char** cmdPaths, char*** cmdArgs, int cmdCount, char * input
         close(fd[0]);
         close(fd[1]);
 
+        printf("[%d] %d\n", 0, pid1);
         waitpid(pid1, &status1, WNOHANG);
+        printf("[%d] %d\n", 0, pid2);
         waitpid(pid2, &status2, WNOHANG);
 }
 
@@ -319,7 +321,7 @@ void doublePiping(char** cmdPaths, char*** cmdArgs, int cmdCount, char * inputFi
 void b_doublePiping(char** cmdPaths, char*** cmdArgs, int cmdCount, char * inputFile, char * outputFile){
         pid_t pid1, pid2, pid3;	// process ids for all processes
 
-        int status1, status2;
+        int status1, status2;   //status for processes
 
         int pipe1[2];	// first pipe
         int pipe2[2];	// second pipe
@@ -436,7 +438,8 @@ void b_doublePiping(char** cmdPaths, char*** cmdArgs, int cmdCount, char * input
 		perror("bad execution");
                 exit(0);
         }
-
+        printf("[%d] %d\n", 0, pid1);
         waitpid(pid1, &status1, WNOHANG);
+        printf("[%d] %d\n", 1, pid2);
         waitpid(pid2, &status2, WNOHANG);
 }
