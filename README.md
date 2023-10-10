@@ -74,14 +74,14 @@ project-1-group-25/
 - **Dependencies**: N/A (Programmed in C)
 
 ### Compilation
-For a C/C++ example:
+For linprog:
 ```bash
 make
 ```
-This will build the executable in ...
+This will build the executable "shell" in bin
 ### Execution
 ```bash
-make run
+./bin/shell
 ```
 This will run the program ...
 
