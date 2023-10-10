@@ -16,6 +16,7 @@ typedef struct {
 
 
 char * get_input(void);
+char *path_Search(char* tokens);
 tokenlist * get_tokens(char *input);
 tokenlist * new_tokenlist(void);
 char * path_Search(char* tokens);
