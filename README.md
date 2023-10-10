@@ -101,3 +101,4 @@ This will run the program ...
 - **Extra Credit 3 Documentation**: Shell-ception is currently not available.
 
 ## Considerations
+-We created a working mytimeout executable, however the shell does not have a built in path for it. mytimeout runs correctly, but it must be run from /bin.
