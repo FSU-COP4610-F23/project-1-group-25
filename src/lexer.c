@@ -16,11 +16,8 @@ int main()
 	char currdir[100];
 	char * prevDir = NULL;
 	pid_t pids[10];
-	char *cmds[10];
 	int p_iterator = 0;
-	int c_iterator = 0;
 	int status=0;
-	tokenlist ** test;
 	
 	while (1) {
 		//getenv() should be machine for linprog//
@@ -36,6 +33,7 @@ int main()
 		{
 			continue;
 		}
+
 		char *inputFile = get_inputfile(input);
 		char *outputFile = get_outputfile(input);
 		
@@ -45,7 +43,7 @@ int main()
 		{
 			if (!strcmp(tokens->items[0], s))
 			{
-				printf("exit declared\n");
+				printf("logout\n");
 				free(input);
 				free_tokens(tokens);
 				if (prevDir != NULL)
@@ -68,7 +66,6 @@ int main()
 					//Change one directory back
 					prevDir = getcwd(prevDir, 100);
 					chdir("..");
-					prevArgs(tokens, test);
 				}
 				else if(!(strcmp(dir, "/")))
 				{
@@ -105,7 +102,6 @@ int main()
 			{
 				//if cd is alone//
 				prevDir = getcwd(prevDir, 100);
-				printf("Prev Dir: %s\n", prevDir);
 				chdir(getenv("HOME"));
 			}
 			else
@@ -151,34 +147,7 @@ int main()
 				}
 			}
 
-			if(!(strcmp(Cargs[count][argToks-1], "&")))
-			{
-				Cargs[count][argToks-1] = NULL;
-				if(pipeCount == 1){
-					b_singlePiping(csp, Cargs, count+1);
-				}
-				else if (pipeCount == 2)
-				{
-					b_doublePiping(csp, Cargs, count+1);
-				}
-				else{
-					pid_t pid;
-					pid = fork();
-					if(pid == 0){
-						execv(csp[0], Cargs[0]);
-
-						exit(1);
-					}
-					else{
-						pids[p_iterator] = pid;
-						cmds[c_iterator] = Cargs[count][argToks-2];
-						printf("[%d] %d\n", p_iterator+1, pids[p_iterator]);
-						waitpid(pid, &status, WNOHANG);
-						
-					}
-				}
-			}
-			else if((inputFile != NULL) || (outputFile != NULL)){
+			if((inputFile != NULL) || (outputFile != NULL)){
 			pid_t pid = fork();
 	 		if (pid == 0)
 				{
@@ -207,9 +176,43 @@ int main()
 		
 			}
 			else{
-				waitpid(pid, NULL, 0);
+				if(!strcmp(tokens->items[tokens->size-1], "&"))
+				{	
+					Cargs[count][argToks-1] = NULL;
+					waitpid(pid, NULL, WNOHANG);
+				}
+				else
+				{
+					waitpid(pid, NULL, 0);
+				}
 			}	
 		}
+		if(!(strcmp(Cargs[count][argToks-1], "&")))
+			{
+				Cargs[count][argToks-1] = NULL;
+				if(pipeCount == 1){
+					b_singlePiping(csp, Cargs, count+1);
+				}
+				else if (pipeCount == 2)
+				{
+					b_doublePiping(csp, Cargs, count+1);
+				}
+				else{
+					pid_t pid;
+					pid = fork();
+					if(pid == 0){
+						execv(csp[0], Cargs[0]);
+
+						exit(1);
+					}
+					else{
+						pids[p_iterator] = pid;
+						printf("[%d] %d\n", p_iterator+1, pids[p_iterator]);
+						waitpid(pid, &status, WNOHANG);
+						
+					}
+				}
+			}
 			else
 			{
 				if(pipeCount == 1){
@@ -244,28 +247,6 @@ int main()
 	}
 
 	return 0;
-}
-
-tokenlist ** prevArgs(tokenlist * tokens, tokenlist** test)
-{
-	printf("test\n");
-	tokenlist ** newTokenlist;
-	test[0] = (tokenlist **)malloc(sizeof(tokenlist));
-	test[0]->size = 0;
-	test[0]->items = (char **)malloc(sizeof(char *));
-	test[0]->items[0] = NULL; /* make NULL terminated */
-	printf("BLAH\n");
-	test[0]->items[0] = tokens->items[0];
-	
-	newTokenlist = test;
-	printf("Tokenlist Array at 0: ");
-	printf("%s", test[0]->items[0]);
-	for (int i = 0; i < test[0]->size; i++)
-	{
-		printf("%s ", test[0]->items[i]);
-	}
-	printf("\n");
-	return newTokenlist;
 }
 
 void singlePiping(char** cmdPaths, char*** cmdArgs, int cmdCount){
@@ -588,7 +569,7 @@ tokenlist *get_tokens(char *input) {
 		{
 			if(outputExists)
 			{
-                                printf("Ambiguous output redirect");
+                printf("Ambiguous output redirect");
 				free_tokens(tokens);
 				free(buf);
 				return NULL;
@@ -602,7 +583,7 @@ tokenlist *get_tokens(char *input) {
 		{
 			if(inputExists)
 			{
-                                printf("Ambiguous input redirect");
+                printf("Ambiguous input redirect");
 				free_tokens(tokens);
 				free(buf);
 				return NULL;
