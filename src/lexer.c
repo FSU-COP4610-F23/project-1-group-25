@@ -131,7 +131,7 @@ int main()
 						printf("%s:", tokens->items[i]);
 						printf("Command not found\n");
 					}
-					Cargs[count] = (char **)calloc(5, sizeof(char*));
+					Cargs[count] = (char **)calloc(tokens->size+1, sizeof(char*));
 					isCommand = false;
 				}
 
