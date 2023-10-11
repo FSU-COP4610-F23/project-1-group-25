@@ -144,7 +144,7 @@ tokenlist *get_tokens(char *input) {
 		{
 			if(outputExists)
 			{
-                printf("Ambiguous output redirect");
+                		printf("Ambiguous output redirect.\n");
 				free_tokens(tokens);
 				free(buf);
 				return NULL;
@@ -158,7 +158,7 @@ tokenlist *get_tokens(char *input) {
 		{
 			if(inputExists)
 			{
-                		printf("Ambiguous input redirect");
+                		printf("Ambiguous input redirect.\n");
 				free_tokens(tokens);
 				free(buf);
 				return NULL;
