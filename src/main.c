@@ -39,6 +39,10 @@ int main()
 
 		//Retrieves token list
 		tokenlist *tokens = get_tokens(input);
+		if(tokens == NULL)
+		{
+			continue;
+		}
 
 		if (tokens->size == 1)
 		{
