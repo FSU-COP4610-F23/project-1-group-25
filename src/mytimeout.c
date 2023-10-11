@@ -19,16 +19,6 @@ int main(int argc, char *argv[])
 		argList[i] = (char *)calloc(strlen(argv[i]), sizeof(char));
 		argList[i] = argv[i];
 	}
-	pid_t pid = fork();
-	int status;
-	if(pid == 0)
-	{
-		execv(argList[0], argList);
-		exit(1);
-	}
-	else
-	{
-		waitpid(pid, &status, WNOHANG);
-	}
+	execv(argList[0], argList);
 	return 0;
 }
