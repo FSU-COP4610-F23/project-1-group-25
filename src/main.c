@@ -11,9 +11,9 @@
 int main()
 {
 	pid_t waitpid(pid_t pid, int *stat_loc, int options);
-	char * s = "exit";
-	char currdir[100];
-	char * prevDir = NULL;
+	char * s = "exit";	//used for exit
+	char currdir[100];	//holds the current directory for cd
+	char * prevDir = NULL;	//holds the previous directory for cd
 	pid_t pids[10];
 	int p_iterator = 0;
 	int status=0;
@@ -33,13 +33,16 @@ int main()
 			continue;
 		}
 
+		//These hold the file names for I/O redirects
 		char *inputFile = get_inputfile(input);
 		char *outputFile = get_outputfile(input);
-		
+
+		//Retrieves token list
 		tokenlist *tokens = get_tokens(input);
 
 		if (tokens->size == 1)
 		{
+			//exit command
 			if (!strcmp(tokens->items[0], s))
 			{
 				printf("logout\n");
@@ -52,7 +55,8 @@ int main()
 				break;
 			}
 		}
-		
+
+		//cd command
 		if (!(strcmp(tokens->items[0], "cd")))
 		{
 			if (tokens->size == 2)
@@ -109,8 +113,10 @@ int main()
 				continue;
 			}
 		}
+		//Executing commands
 		else
 		{
+			//setup for piping when needed
 			////////////////////////////////////////////////////////////////////////
 			char ***Cargs = (char ***)calloc(10, sizeof(char**));
 			////////////////////////////////////////////////////////////////////////
@@ -144,7 +150,7 @@ int main()
 					argToks++;
 				}
 			}
-
+			//Runs background processes
 			if(!(strcmp(Cargs[count][argToks-1], "&")))
 			{
 				Cargs[count][argToks-1] = NULL;
@@ -171,10 +177,10 @@ int main()
 					}
 				}
 			}
-
+			//runs I/O redirects
 			else if((inputFile != NULL) || (outputFile != NULL)){
-			pid_t pid = fork();
-	 		if (pid == 0)
+				pid_t pid = fork();
+	 			if (pid == 0)
 				{
 					// If char * inputFile is not NULL 
 					if(inputFile != NULL){
