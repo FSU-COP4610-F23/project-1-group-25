@@ -158,7 +158,7 @@ tokenlist *get_tokens(char *input) {
 		{
 			if(inputExists)
 			{
-                printf("Ambiguous input redirect");
+                		printf("Ambiguous input redirect");
 				free_tokens(tokens);
 				free(buf);
 				return NULL;
@@ -171,7 +171,7 @@ tokenlist *get_tokens(char *input) {
 		if((tok[0] == '~') || (tok[0] == '$'))
 		{
 			char * envVar = expandEnv(tok);
-			if(!strcmp(envVar, "failure"))
+			if(envVar == NULL)
 			{
 				free_tokens(tokens);
 				return NULL;
@@ -201,7 +201,7 @@ char * expandEnv(char * tok)
                 {
                 	printf("%s: Undefined variable.\n", envVar);
                         free(envVar);
-                        return "failure";
+                        return NULL;
                 }
                 tok = getenv(envVar);
                 free(envVar);
