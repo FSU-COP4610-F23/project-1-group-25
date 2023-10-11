@@ -96,9 +96,9 @@ This will run the program ...
 - **Extra Credit 1**: Support unlimited number of pipes.
 - **Extra Credit 1 Documentation**: Only supports 2 pipes at the moment.
 - **Extra Credit 2**: Support piping and I/O redirection in a single command.
-- **Extra Credit 2 Documentation**: Piping and I/O redirection works correctly.
+- **Extra Credit 2 Documentation**: Piping and I/O redirection is working identically to hwo it works on linprog.
 - **Extra Credit 3**: Execute your shell from within a running shell process repeatedly.
-- **Extra Credit 3 Documentation**: Shell-ception is currently not available.
+- **Extra Credit 3 Documentation**: Shell can be called from within itself. If exit is run from within a nested shell, it will exit to the shell it was nested within.
 
 ## Considerations
 -Github shows almost all commits were by Kaleb. This was by design, as Kaleb was able to get everything running on VScode with an easy way to upload to github. Jake and John wrote and ran code on linprog to make sure it would run correctly there, and then would pass code over to Kaleb to commit to github.
