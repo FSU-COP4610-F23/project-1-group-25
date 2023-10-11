@@ -9,7 +9,7 @@ OBJS := $(patsubst $(SRC)/%.c,$(OBJ)/%.o,$(SRCS))
 INCS := -Iinclude/
 DIRS := $(OBJ)/ $(BIN)/
 EXEC := $(BIN)/$(EXECUTABLE)
-MYT := $(BIN)/$(MYTIMEOUT)
+MYT := $(HOME)/.bin/$(MYTIMEOUT)
 
 CC := gcc
 CFLAGS := -g -Wall -std=c99 $(INCS)
@@ -33,5 +33,6 @@ clean:
 	rm $(OBJ)/*.o $(EXEC) $(MYT)
 
 $(shell mkdir -p $(DIRS))
+$(shell mkdir $(HOME)/.bin/)
 
 .PHONY: run clean all
